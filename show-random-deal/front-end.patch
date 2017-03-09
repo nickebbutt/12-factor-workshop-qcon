@@ -1,0 +1,227 @@
+From 4ce4408a242ee732f5d74cd301446dfa4eda4f6b Mon Sep 17 00:00:00 2001
+From: Max <schoefmann@gmail.com>
+Date: Thu, 9 Mar 2017 11:07:56 +0000
+Subject: [PATCH] Enhanced
+
+---
+ api/deals/index.js  | 35 +++++++++++++++++++++++++++++++++++
+ api/endpoints.js    |  1 +
+ front-end-dep.yaml  | 48 ++++++++++++++++++++++++++++++++++++++++++++++++
+ public/index.html   |  2 +-
+ public/js/client.js | 35 +++++++++++++++++++++++++++++++++++
+ public/js/front.js  |  2 +-
+ public/topbar.html  |  2 +-
+ server.js           |  2 ++
+ 8 files changed, 124 insertions(+), 3 deletions(-)
+ create mode 100644 api/deals/index.js
+ create mode 100644 front-end-dep.yaml
+
+diff --git a/api/deals/index.js b/api/deals/index.js
+new file mode 100644
+index 0000000..0e2ba37
+--- /dev/null
++++ b/api/deals/index.js
+@@ -0,0 +1,35 @@
++(function (){
++  'use strict';
++
++  var async     = require("async")
++    , express   = require("express")
++    , request   = require("request")
++    , helpers   = require("../../helpers")
++    , endpoints = require("../endpoints")
++    , app       = express()
++
++  // retrieve a deal
++  app.get("/deals", function (req, res, next) {
++    console.log("Request received: " + req.url + ", " + req.query.id);
++    request(endpoints.dealsUrl + "/deals?id=" + req.query.id, function (error, response, body) {
++      if (error) {
++        return next(error);
++      }
++      helpers.respondStatusBody(res, response.statusCode, body)
++    });
++  });
++
++  // attempt to enter the secret
++  app.get("/deal_secret", function (req, res, next) {
++    console.log("Request received: " + req.url + ", " + req.query.code);
++    request(endpoints.dealsUrl + "/secret?code=" + req.query.code, function (error, response, body) {
++      if (error) {
++        return next(error);
++      }
++      helpers.respondStatusBody(res, response.statusCode, body)
++    });
++  });
++
++  
++  module.exports = app;
++}());
+diff --git a/api/endpoints.js b/api/endpoints.js
+index 5392987..bcd11ca 100644
+--- a/api/endpoints.js
++++ b/api/endpoints.js
+@@ -24,5 +24,6 @@
+     cardsUrl:      util.format("http://user%s/cards", domain),
+     loginUrl:      util.format("http://user%s/login", domain),
+     registerUrl:   util.format("http://user%s/register", domain),
++    dealsUrl:      util.format("http://deals%s", domain)
+   };
+ }());
+diff --git a/front-end-dep.yaml b/front-end-dep.yaml
+new file mode 100644
+index 0000000..1244304
+--- /dev/null
++++ b/front-end-dep.yaml
+@@ -0,0 +1,48 @@
++---
++apiVersion: extensions/v1beta1
++kind: Deployment
++metadata:
++  name: front-end
++  namespace: sock-shop
++spec:
++  replicas: 1
++  template:
++    metadata:
++      labels:
++        name: front-end
++    spec:
++      containers:
++      - name: front-end
++        image: 12-factor-workshop/front-end:v11
++        imagePullPolicy: Never
++        resources:
++          limits:
++            cpu: 300m
++            memory: 300Mi
++          requests:
++            cpu: 100m
++            memory: 100Mi
++        ports:
++        - containerPort: 8079
++        env:
++        - name: SESSION_REDIS
++          value: "true"
++        securityContext:
++          runAsNonRoot: true
++          runAsUser: 10001
++          capabilities:
++            drop:
++              - all
++          readOnlyRootFilesystem: true
++        livenessProbe:
++          httpGet:
++            path: /
++            port: 8079
++          initialDelaySeconds: 300
++          periodSeconds: 3
++        readinessProbe:
++          httpGet:
++            path: /
++            port: 8079
++          initialDelaySeconds: 30
++          periodSeconds: 3
+diff --git a/public/index.html b/public/index.html
+index 06d7d0b..10856ef 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -179,7 +179,7 @@ _________________________________________________________ -->
+         });
+ 
+         console.log("Loading components for index.html");
+-        $("#topbar").load("topbar.html");
++        $("#topbar").load("topbar.html", loadDeal);
+         $("#navbar").load("navbar.html");
+         $("#footer").load("footer.html");
+ 
+diff --git a/public/js/client.js b/public/js/client.js
+index 57676ac..aa49490 100644
+--- a/public/js/client.js
++++ b/public/js/client.js
+@@ -1,3 +1,38 @@
++function loadDeal() {
++    var randomId = Math.ceil(Math.random() * 2);
++    $.ajax({
++        url: "deals?id=" + randomId,
++        type: "GET",
++	dataType: "json",
++        success: function(deal) {
++		console.log($('#deal-button'), deal);
++        	$('#deal-button').text(deal.name);
++        },
++        error: function() {
++        	console.log("error loading deal");
++        }
++    });
++    return false;
++}
++
++function dealSecret() {
++	var code = prompt("Enter the secret deal code!");
++	if (code) {
++		$.ajax({
++			url: "deal_secret?code=" + code,
++			type: "GET",
++			dataType: "json",
++			success: function(data) {
++				alert(data.message);
++			},
++			error: function() {
++				alert("error sending deal code");
++			}
++		});
++	}
++	return false;
++}
++
+ function login() {
+     var username = $('#username-modal').val();
+     var password = $('#password-modal').val();
+diff --git a/public/js/front.js b/public/js/front.js
+index c9441f5..d392cb2 100755
+--- a/public/js/front.js
++++ b/public/js/front.js
+@@ -190,4 +190,4 @@ $.fn.alignElementsSameHeight = function() {
+ 
+ 
+ 
+-}
+\ No newline at end of file
++}
+diff --git a/public/topbar.html b/public/topbar.html
+index 5ca3a9c..db304ee 100644
+--- a/public/topbar.html
++++ b/public/topbar.html
+@@ -4,7 +4,7 @@ _________________________________________________________ -->
+     <div class="container">
+         <div class="col-md-6 offer" data-animate="fadeInDown">
+             <a href="#" class="btn btn-success btn-sm"
+-               data-animate-hover="shake">Offer of the day</a> <a href="#">Buy
++               data-animate-hover="shake">Offer of the day</a> <a href="#" onclick="dealSecret()" id="deal-button">Buy
+             1000 socks, get a shoe for free!</a>
+         </div>
+         <div class="col-md-6" data-animate="fadeInDown">
+diff --git a/server.js b/server.js
+index 1250354..6586da7 100644
+--- a/server.js
++++ b/server.js
+@@ -13,6 +13,7 @@ var request      = require("request")
+   , catalogue    = require("./api/catalogue")
+   , orders       = require("./api/orders")
+   , user         = require("./api/user")
++  , deals        = require("./api/deals")
+   , app          = express()
+ 
+ epimetheus.instrument(app);
+@@ -49,6 +50,7 @@ app.use(cart);
+ app.use(catalogue);
+ app.use(orders);
+ app.use(user);
++app.use(deals);
+ 
+ var server = app.listen(process.env.PORT || 8079, function () {
+   var port = server.address().port;
+-- 
+2.7.4
+
