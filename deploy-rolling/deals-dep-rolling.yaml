@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: deals
+  labels:
+    name: deals
+spec:
+  replicas: 3
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        name: deals
+    spec:
+      containers:
+      - name: deals
+        image: 12-factor-workshop/deals:v2
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8888
