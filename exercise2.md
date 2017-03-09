@@ -11,6 +11,7 @@ Create (or copy) a similar `Dockerfile` in your code directory and build the ima
 If you need inspiration for your own language, browse the https://github.com/microservices-demo organisation for 
 services written in your language of choice, they all come with a `Dockerfile`.
 
+    cp ../simple-deals-service/main.go .
     docker build -t 12-factor-workshop/deals:v1 .
 
 You can see the new images with `docker images ls`
