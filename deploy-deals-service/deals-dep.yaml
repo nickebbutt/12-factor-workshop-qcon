@@ -1,0 +1,20 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: deals
+  labels:
+    name: deals
+  namespace: sock-shop
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: deals
+    spec:
+      containers:
+      - name: deals
+        image: 12-factor-workshop/deals:v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8888
