@@ -1,0 +1,36 @@
+---
+swagger: '2.0'
+info:
+  version: 0.0.0
+  title: Deals  API
+  description: Returns a list of deals
+basePath: /deals
+schemes:
+  - http
+  - https
+
+produces:
+  - application/json
+
+paths:
+  /:
+    get:
+      parameters:
+        - name: id
+          in: query
+          type: integer
+          required: true
+          description: The id of the deal to retrieve  
+      responses:
+        200:
+          description: Return the deal with the defined id
+          schema:
+              $ref: '#/definitions/Deal'
+definitions:
+  Deal:
+    type: object
+    properties:
+      Id:
+        type: integer
+      Name: 
+        type: string
